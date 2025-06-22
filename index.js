@@ -72,30 +72,31 @@ async function fetchTasks(token, proxy, campaignId) {
     }
 }
 
-async function processTask(token, proxy, campaignId, taskId, taskName = 'Unnamed Task') {
+async function processTask(token, proxy, campaignId, taskId, taskName = 'Unnamed Task', isSubtask = false) {
     const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
     };
+    const taskType = isSubtask ? 'Subtask' : 'Task';
 
     try {
         // Add points
         const addPointsUrl = 'https://campaign.cicada.finance/api/points/add';
         const addPointsData = { taskId };
-        console.log(chalk.yellow(`➕ Adding points for task ${taskId} (${taskName})...`));
+        console.log(chalk.yellow(`➕ Adding points for ${taskType.toLowerCase()} ${taskId} (${taskName})...`));
         const addPointsResponse = await makeRequest(addPointsUrl, 'POST', headers, addPointsData, proxy);
-        console.log(chalk.green(`✅ Points added: ${JSON.stringify(addPointsResponse)}`));
+        console.log(chalk.green(`✅ Points added for ${taskType.toLowerCase()}: ${JSON.stringify(addPointsResponse)}`));
 
         // Credit gems
         const creditUrl = 'https://campaign.cicada.finance/api/gems/credit';
         const creditData = { transactionType: 'TASK', options: { taskId } };
-        console.log(chalk.yellow(`💎 Crediting gems for task ${taskId} (${taskName})...`));
+        console.log(chalk.yellow(`💎 Crediting gems for ${taskType.toLowerCase()} ${taskId} (${taskName})...`));
         const creditResponse = await makeRequest(creditUrl, 'POST', headers, creditData, proxy);
-        console.log(chalk.magenta(`💎 Gems credited: ${JSON.stringify(creditResponse)}`));
+        console.log(chalk.magenta(`💎 Gems credited for ${taskType.toLowerCase()}: ${JSON.stringify(creditResponse)}`));
 
     } catch (error) {
-        console.log(chalk.red(`❌ Error processing task ${taskId} (${taskName}): ${error.message}`));
+        console.log(chalk.red(`❌ Error processing ${taskType.toLowerCase()} ${taskId} (${taskName}): ${error.message}`));
     }
 }
 
@@ -158,23 +159,36 @@ async function main() {
             continue;
         }
 
-        // Filter uncompleted tasks
-        const uncompletedTasks = tasks.filter(task => !completedTasks.includes(task.id));
-        if (uncompletedTasks.length === 0) {
-            console.log(chalk.yellow(`⚠️ All tasks already completed for this token`));
-            continue;
-        }
+        // Process each task and its subtasks
+        for (const task of tasks) {
+            const taskName = task.name || 'Unnamed Task';
+            console.log(chalk.blue(`🚀 Processing task: ${task.id} (${taskName})`));
 
-        // Process each uncompleted task
-        for (const task of uncompletedTasks) {
-            console.log(chalk.blue(`🚀 Processing task: ${task.id} (${task.name || 'Unnamed Task'})`));
-            await processTask(tokens[i], proxy, campaignId, task.id, task.name);
-            // Add delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Process main task if not completed
+            if (!completedTasks.includes(task.id)) {
+                await processTask(tokens[i], proxy, campaignId, task.id, taskName, false);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Delay to avoid rate limiting
+            } else {
+                console.log(chalk.gray(`⏭️ Skipping task ${task.id} (${taskName}) as it is already completed`));
+            }
+
+            // Process subtasks if they exist
+            if (task.subtasks && task.subtasks.length > 0) {
+                console.log(chalk.blue(`🔧 Processing subtasks for task ${task.id} (${taskName})`));
+                for (const subtask of task.subtasks) {
+                    const subtaskName = subtask.name || 'Unnamed Subtask';
+                    if (!completedTasks.includes(subtask.id)) {
+                        await processTask(tokens[i], proxy, campaignId, subtask.id, subtaskName, true);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Delay to avoid rate limiting
+                    } else {
+                        console.log(chalk.gray(`⏭️ Skipping subtask ${subtask.id} (${subtaskName}) as it is already completed`));
+                    }
+                }
+            }
         }
     }
 
-    console.log(chalk.bold.cyan('\n🎉 All tasks completed!'));
+    console.log(chalk.bold.cyan('\n🎉 All tasks and subtasks completed!'));
 }
 
 main().catch(error => console.log(chalk.red(`❌ Main error: ${error.message}`)));
