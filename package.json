@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "axios": "^1.10.0",
+    "cfonts": "^3.3.0",
+    "chalk": "^4.1.2",
+    "http-proxy-agent": "^7.0.2",
+    "readline-sync": "^1.4.10",
+    "socks-proxy-agent": "^8.0.5"
+  }
+}
