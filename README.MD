@@ -19,8 +19,8 @@ Script ini digunakan untuk mengotomatiskan penyelesaian tugas di platform Cicada
 
 1. **Clone repository ini**
 ```sh
-git clone https://github.com/marioatmajanugraha/CicadaFinance-Bot.git
-cd CicadaFinance-Bot
+git clone https://github.com/airdrop-888/cicadaFinance-Bot.git
+cd cicadaFinance-Bot
 ```
 
 ---
